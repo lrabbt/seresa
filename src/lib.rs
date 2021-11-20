@@ -70,6 +70,7 @@ impl From<io::Error> for Error {
 }
 
 pub fn share_article<T: Connect>(
+    mut w: impl io::Write,
     chain_client: &ChainClient<T>,
     signature: Option<&str>,
     title: &str,
@@ -93,7 +94,8 @@ where
 
     let payload = serde_json::to_vec(&share)?;
 
-    chain_client.post(signature, false, &payload)?;
+    let hash = chain_client.post(signature, false, &payload)?;
+    writeln!(w, "{}", hash)?;
 
     Ok(())
 }

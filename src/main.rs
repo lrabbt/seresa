@@ -234,7 +234,15 @@ fn main() -> Result<(), Box<dyn Error>> {
             let authors: Vec<_> = matches.values_of("authors").unwrap_or_default().collect();
             let tags: Vec<_> = matches.values_of("tags").unwrap_or_default().collect();
 
-            seresa::share_article(&chain_client, signature, title, &authors, &tags, uri)?;
+            seresa::share_article(
+                io::stdout(),
+                &chain_client,
+                signature,
+                title,
+                &authors,
+                &tags,
+                uri,
+            )?;
         }
 
         if let Some(matches) = matches.subcommand_matches("search") {
