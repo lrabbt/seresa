@@ -9,7 +9,7 @@ use std::io;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let matches = App::new("seresa")
-        .version("1.0")
+        .version("0.1.0")
         .author("Breno Brandão <lrabbt@gmail.com>")
         .about("Shares and searches research papers on a Freechains network.")
         .subcommand(

@@ -8,11 +8,108 @@ Seresa objective is to allow users to easily share, search and consume research 
 
 ## Usage
 
-TODO
+The program assumes the user has a Freechains node running on a reachable machine and that every chain and key pairs have already been created, since reimplementing those functionalities would overlap functionalities with `freechains` command.
+
+The program is divided on two major subcommands: `share` and `resource`.
+
+`share` subcommand is responsible for sharing and searching paper information, such as finding the paper on a Freechains chain, getting the paper title or getting the paper URI.
+
+`resource` subcommand is responsible for uploading and downloading files on a Freechains chain, splitting the files on blocks which fit on Freechains maximum post size.
+
+#### Share
+
+Sharing a resource on the "#forum" chain, at a `http` site and tagging it `freenet` and `p2p`:
+
+```bash
+$ seresa share -c '#forum' post --sign $PVTKEY -t "Freenet Advances" --uri 'http://example.site/freenet-advances.pdf' --tag freenet --tag p2p --author "Some A. <some-author@example.site>"
+1_B5691AE5009C08BE7202B3961D54A819BC27569DD267B9D7E9448C24D3B6607D
+```
+
+This will create a post with the information on a `JSON` format.
+
+If we want to search for an article on a chain, we can use the `search` subcommand:
+
+```bash
+$ seresa share -c '#forum' search -s free
+1_B5691AE5009C08BE7202B3961D54A819BC27569DD267B9D7E9448C24D3B6607D
+```
+
+And all posts on the "#forum" chain which contains "free" on its title, tags or authors will have their hashes printed.
+
+For simplicity sake, there are commands to parse and print a post `uri` and `title` fields:
+
+```bash
+$ seresa share -c '#forum' get-uri --hash 1_B5691AE5009C08BE7202B3961D54A819BC27569DD267B9D7E9448C24D3B6607D
+http://example.site/freenet-advances.pdf
+```
+
+```bash
+$ seresa share -c '#forum' get-title --hash 1_B5691AE5009C08BE7202B3961D54A819BC27569DD267B9D7E9448C24D3B6607D
+Freenet Advances
+```
+
+If the node is not on the local machine, we can specify its host:
+
+```bash
+$ seresa share -c '#forum' --host some-other-host --port 1234 search -s free
+1_B5691AE5009C08BE7202B3961D54A819BC27569DD267B9D7E9448C24D3B6607D
+```
+
+The `JSON` format of the post is discusses below.
+
+#### Resource
+
+The `resource` subcommand downloads and uploads resources to a Freechains chain. References to a resource on a Freechains chain can be made by the `fchs` URI scheme, discussed below.
+
+Uploading a file to a Freechains chain.
+
+```bash
+$ seresa resource upload -c '#forum' -f freenet.pdf -s $PVTKEY -t "Freenet"
+2_DF294EFD01B567622111B2E808FF05983B32F5A2666E9A6594A8AAE08BFA9EA4
+3_D78CB4F6817F996CAE5FEA0EBBE51A68CF1226FD6B21EE7A205C9FCB94172C5A
+4_DB0AD9E3CC2E1ED33F6C3917FFD56BEC9F92E48A8AF460BF46FD9386C975E597
+```
+
+The three hashes on the output are the hashes of the file blocks. Each block has a `JSON` payload and its format and encoding are discussed below.
+
+To download the recently uploaded file, we must get the reference for the last block of the file. The reference follows the `fchs` URI scheme:
+
+```bash
+$ seresa resource download -u 'fchs:#forum:4_DB0AD9E3CC2E1ED33F6C3917FFD56BEC9F92E48A8AF460BF46FD9386C975E597' > freenet.pdf
+```
+
+or
+
+```bash
+$ seresa resource download -u 'fchs:#forum:4_DB0AD9E3CC2E1ED33F6C3917FFD56BEC9F92E48A8AF460BF46FD9386C975E597' -o freenet.pdf
+```
+
+The reason we use a diferent URI scheme is only so we can reference the resource on a `uri` field on the `share` subcommand, the same way we would reference a `http` resource, for example:
+
+```json
+"uri": "fchs:#forum:4_DB0AD9E3CC2E1ED33F6C3917FFD56BEC9F92E48A8AF460BF46FD9386C975E597"
+```
 
 ## Installation
 
-TODO
+### From Binary
+
+Check out for the most recent [release](https://github.com/lrabbt/seresa/releases/tag/v0.1.0).
+
+### From Source
+
+Pre-requisites:
+
+- rust >= 1.55.0
+- cargo >= 1.55.0
+
+After cloning the repository:
+
+```bash
+$ cargo build --release
+```
+
+The binary will be generated on `target/release/seresa`.
 
 ## Concepts
 
@@ -69,16 +166,15 @@ The post format will have a `JSON` payload, with the following schema, as define
 }
 ```
 
-### Query
-
-Seresa will have support for search on all fields at first, using a simple include search.
-
 ### Resource Location
 
-Every post on the Share Forum will have to provide an URI for the posted paper, the accepted schemes are:
+Every post on the Share Forum will have to provide an URI for the posted paper, for the purpose of simplicity, any URI can be posted, for instance, "http", "ftp", etc.
 
-- http
-- fchs
+A new schema for publishing files on a Freechains chain was created, and it will be discussed later.
+
+### Search Query
+
+Seresa will have support for search on all fields at first, using a simple include search.
 
 ### Freechains URI
 
@@ -117,17 +213,19 @@ For the program to be able to load a file from a `fsch` URI, the content pointed
       "description": "Base64 representation of the resource block",
       "type": "string"
     },
-    "next": {
-      "description": "Next block of the resource, \"null\" if last block",
+    "prev": {
+      "description": "Previous block of the resource, \"null\" if last block",
       "type": ["string", "null"],
       "format": "uri"
     }
   },
-  "required": ["title", "content", "next"]
+  "required": ["title", "content", "prev"]
 }
 ```
 
-If any resource block is not on the consensus, the resource cannot be retrieved.
+Since the file is cut in various blocks, the only thing limiting the size of the file is the reputation of the user on the chain the file is being posted.
+
+If any resource block is not on the consensus, or has a low reputation (< -3), the resource will not be retrieved.
 
 [1]: https://sci-hub.se/
 [2]: https://github.com/Freechains/README/
