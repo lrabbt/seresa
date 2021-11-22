@@ -227,6 +227,10 @@ Since the file is cut in various blocks, the only thing limiting the size of the
 
 If any resource block is not on the consensus, or has a low reputation (< -3), the resource will not be retrieved.
 
+## License
+
+MIT
+
 [1]: https://sci-hub.se/
 [2]: https://github.com/Freechains/README/
 [3]: http://json-schema.org/
